@@ -2,11 +2,11 @@
 #include <stdio.h>	//for printf
 #include <stdlib.h>	//for exit
 
-/* The name of this program.  */
+// The name of this program.
 const char* program_name;
 
 /*
- * Prints usage information for this program and exit with exit_code 
+ * Prints usage information about this program and exits with exit_code 
  */
 void print_usage(int exit_code){
 	printf("Usage: %s options\n", program_name);
@@ -19,9 +19,9 @@ void print_usage(int exit_code){
 }
 
 int main (int argc, char* argv[]){
-	// String listing valid short options
+	// A string listing valid short options
 	const char* const short_options = "p:l:f:";
-	// Array describing valid long options
+	// An array describing valid long options
 	const struct option long_options[] = {
 		{ "prompt",     1, NULL, 'p' },
 		{ "loglevel",   1, NULL, 'l' },
