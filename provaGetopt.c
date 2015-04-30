@@ -9,7 +9,6 @@ const char* program_name;
    (typically stdout or stderr), and exit the program with
    EXIT_CODE.
    Does not return.  */
-
 void print_usage (FILE* stream, int exit_code)
 {
   fprintf (stream, "Usage:  %s options [ inputfile ... ]\n",
