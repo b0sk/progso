@@ -9,7 +9,12 @@ const char* program_name;
  * Prints usage information for this program and exit with exit_code 
  */
 void print_usage(int exit_code){
-	printf("TODO: write usage info\n");
+	printf("Usage: %s options\n", program_name);
+	printf(
+			"  -p --prompt prompt	  Set the prompt of the shell\n"
+			"  -l --loglevel level	  Set the loglevel [low, middle, high]\n"
+			"  -f --logfile filename   Set the logfile name\n"
+	);
 	exit(exit_code);
 }
 
@@ -28,6 +33,6 @@ int main (int argc, char* argv[]){
 	program_name = argv[0];
 	
 	printf("%s\n", program_name);
-	//print_usage(-1);
+	print_usage(-1);
 	return 0;
 }
