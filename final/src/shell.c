@@ -23,9 +23,9 @@ int main (int argc, char* argv[]){
 	const char* const short_options = "p:l:f:";
 	// An array describing valid long options
 	const struct option long_options[] = {
-		{ "prompt",     1, NULL, 'p' },
-		{ "loglevel",   1, NULL, 'l' },
-		{ "logfile",  1, NULL, 'f' },
+		{ "prompt",		required_argument, NULL, 'p' },
+		{ "loglevel",	required_argument, NULL, 'l' },
+		{ "logfile",	required_argument, NULL, 'f' },
 		{ 0, 0, 0, 0 } //Required
 	};
 	
