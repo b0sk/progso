@@ -11,9 +11,9 @@ const char* program_name;
 void print_usage(int exit_code){
 	printf("Usage: %s options\n", program_name);
 	printf(
-			"  -p, --prompt prompt	  Set the prompt of the shell\n"
-			"  -l, --loglevel level	  Set the loglevel [low, middle, high]\n"
-			"  -f, --logfile filename  Set the logfile name\n"
+			"  -p --prompt prompt	  Set the prompt of the shell\n"
+			"  -l --loglevel level	  Set the loglevel [low, middle, high]\n"
+			"  -f --logfile filename   Set the logfile name\n"
 	);
 	exit(exit_code);
 }
