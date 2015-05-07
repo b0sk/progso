@@ -9,7 +9,7 @@ const char* program_name;
  * Prints usage information about this program and exits with exit_code 
  */
 void print_usage(int exit_code){
-	printf("Usage: %s options\n", program_name);
+	printf("Usage: %s option argument\n", program_name);
 	printf(
 			"  -p, --prompt prompt	  Set the prompt of the shell\n"
 			"  -l, --loglevel level	  Set the loglevel [low, middle, high]\n"
@@ -32,7 +32,46 @@ int main (int argc, char* argv[]){
 	// Set the program name from argv[0];
 	program_name = argv[0];
 	
-	printf("%s\n", program_name);
-	print_usage(-1);
+	
+	int next_opt;
+	while(1){
+		/* getopt_long stores the option index here. */
+		//int next_opt = getopt_long (argc, argv, short_options, long_options, NULL);
+		/* Detect the end of the options. */
+		if (next_opt == -1)
+			break;
+		switch(next_opt){
+			case 0:
+				//printf("Case 0!\n");
+				break;
+			case 'p':	// -p o --prompt
+				printf("Option PROMPT with argument: %s\n", optarg);
+				break;
+			case 'l':	// -l o --loglevel
+				printf("Option LOGLEVEL with argument: %s\n", optarg);
+				break;
+			case 'f':	// -f o --logfile
+				printf("Option LOGFILE with argument: %s\n", optarg);
+				break;
+			case '?':	// Opzione non valida.
+				/* getopt_long prints an error message */
+				print_usage(-1); // Print usage and exit with error
+				break;
+			default:	// Opzione non riconosciuta.
+				printf("Invalid option.\n");
+				print_usage(-1); // Print usage and exit with error
+		}
+	}
+	
+	/* Print any remaining command line arguments (not options). */
+	if (optind < argc){
+		printf ("non-option ARGV-elements: ");
+		while (optind < argc)
+			printf ("%s ", argv[optind++]);
+		putchar ('\n');
+		
+		print_usage(-1); // Print usage and return error
+    }
+
 	return 0;
 }
