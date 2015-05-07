@@ -9,11 +9,11 @@ const char* program_name;
  * Prints usage information about this program and exits with exit_code 
  */
 void print_usage(int exit_code){
-	printf("Usage: %s option argument\n", program_name);
+	printf("Usage: %s <option> <argument>\n", program_name);
 	printf(
-			"  -p, --prompt prompt	  Set the prompt of the shell\n"
-			"  -l, --loglevel level	  Set the loglevel [low, middle, high]\n"
-			"  -f, --logfile filename  Set the logfile name\n"
+			"  -p, --prompt <prompt>		Set the prompt of the shell\n"
+			"  -l, --loglevel <level>	Set the loglevel [low, middle, high]\n"
+			"  -f, --logfile <filename>	Set the logfile name\n"
 	);
 	exit(exit_code);
 }
@@ -31,12 +31,18 @@ int main (int argc, char* argv[]){
 	
 	// Set the program name from argv[0];
 	program_name = argv[0];
+	/* 
+	* An int describing log level:
+	* 0 = LOW, 1 = MIDDLE, 2 = HIGH
+	* The default is MIDDLE (1)
+	*/
+	int loglevel = 1;
 	
 	
 	int next_opt;
 	while(1){
 		/* getopt_long stores the option index here. */
-		//int next_opt = getopt_long (argc, argv, short_options, long_options, NULL);
+		int next_opt = getopt_long (argc, argv, short_options, long_options, NULL);
 		/* Detect the end of the options. */
 		if (next_opt == -1)
 			break;
@@ -49,6 +55,21 @@ int main (int argc, char* argv[]){
 				break;
 			case 'l':	// -l o --loglevel
 				printf("Option LOGLEVEL with argument: %s\n", optarg);
+				
+				// if arg is low set loglevel to 0
+				if(strcmp(optarg, "low") == 0) 
+					loglevel = 0;
+				// if arg is middle set loglevel to 1
+				else if(strcmp(optarg, "middle") == 0)
+					loglevel = 1;
+				// if arg is middle set loglevel to 2
+				else if(strcmp(optarg, "high") == 0)
+					loglevel = 2;
+				// else print usage and exit with error
+				else{
+					printf("Invalid argument for option --loglevel\n");
+					print_usage(-1);
+				}
 				break;
 			case 'f':	// -f o --logfile
 				printf("Option LOGFILE with argument: %s\n", optarg);
