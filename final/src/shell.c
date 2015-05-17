@@ -47,7 +47,7 @@ int main (int argc, char* argv[]){
 	 */
 	int loglevel = 1;
 
-	/* The prompt of the shell */
+	/* The prompt of the shell. Default is "->" */
 	char *prompt = "->";
 
 	// A string listing valid short options
@@ -73,6 +73,8 @@ int main (int argc, char* argv[]){
 				break;
 			case 'p':	// -p o --prompt
 				printf("Option PROMPT with argument: %s\n", optarg);
+				/* Set the prompt from argument */ 
+				prompt = optarg;
 				break;
 			case 'l':	// -l o --loglevel
 				printf("Option LOGLEVEL with argument: %s\n", optarg);
