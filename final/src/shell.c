@@ -50,6 +50,9 @@ int main (int argc, char* argv[]){
 	/* The prompt of the shell. Default is "->" */
 	char *prompt = "->";
 
+	/* The name of the lofile. Default is "shell.log" */
+	char *logfile = "shell.log";
+
 	// A string listing valid short options
 	const char* const short_options = "p:l:f:";
 	// An array describing valid long options
@@ -96,6 +99,7 @@ int main (int argc, char* argv[]){
 				break;
 			case 'f':	// -f o --logfile
 				printf("Option LOGFILE with argument: %s\n", optarg);
+				logfile = optarg;
 				break;
 			case '?':	// Opzione non valida.
 				/* getopt_long prints an error message */
