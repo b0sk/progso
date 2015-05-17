@@ -1,6 +1,6 @@
 #include <getopt.h>
-#include <stdio.h>	//for printf
-#include <stdlib.h>	//for exit
+#include <stdio.h>	//for printf...
+#include <stdlib.h>	//for exit...
 
 // The name of this program.
 const char* program_name;
@@ -18,7 +18,38 @@ void print_usage(int exit_code){
 	exit(exit_code);
 }
 
+/*
+ * Prints the prompt of the shell
+ */
+void sh_print_prompt(char *prompt){
+	printf("%s ", prompt);
+}
+
+/*
+ * Reads a line from input
+ */
+char *sh_read_line(void){
+	char *line = NULL;
+	ssize_t buffsize = 0; // getline allocates a buffer
+	getline(&line, &buffsize, stdin);
+	return line;
+
+}
+
 int main (int argc, char* argv[]){
+	/* Set the program name from argv[0]; */
+	program_name = argv[0];
+
+	/* 
+	 * An int describing log level:
+	 * 0 = LOW, 1 = MIDDLE, 2 = HIGH
+	 * The default is MIDDLE (1)
+	 */
+	int loglevel = 1;
+
+	/* The prompt of the shell */
+	char *prompt = "->";
+
 	// A string listing valid short options
 	const char* const short_options = "p:l:f:";
 	// An array describing valid long options
@@ -28,16 +59,6 @@ int main (int argc, char* argv[]){
 		{ "logfile",	required_argument, NULL, 'f' },
 		{ 0, 0, 0, 0 } //Required
 	};
-	
-	// Set the program name from argv[0];
-	program_name = argv[0];
-	/* 
-	* An int describing log level:
-	* 0 = LOW, 1 = MIDDLE, 2 = HIGH
-	* The default is MIDDLE (1)
-	*/
-	int loglevel = 1;
-	
 	
 	int next_opt;
 	while(1){
@@ -93,6 +114,16 @@ int main (int argc, char* argv[]){
 		
 		print_usage(-1); // Print usage and return error
     }
+
+    /*
+     * Main shell loop
+    */
+    char *line; /* Contais the line from input */
+    do {
+    	sh_print_prompt(prompt);
+    	line = sh_read_line();
+    	printf("-----> %s", line);
+    } while(1);
 
 	return 0;
 }
