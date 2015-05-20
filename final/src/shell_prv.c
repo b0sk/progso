@@ -148,7 +148,7 @@ int main (int argc, char* argv[]){
 
     	sh_print_prompt(prompt);
     	line = sh_read_line();
-		/* Remove initial blank chars */
+		/* Remove initial empty chars */
     	/* TODO */ 
 
     	if (line[0] == '!'){
