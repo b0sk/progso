@@ -1,6 +1,7 @@
 #include <getopt.h>
-#include <stdio.h>	//for printf...
-#include <stdlib.h>	//for exit...
+#include <stdio.h>	//for printf ...
+#include <stdlib.h>	//for exit ...
+#include <string.h>	//for strtok, strcmp ...
 
 // The name of this program.
 const char* program_name;
@@ -33,7 +34,39 @@ char *sh_read_line(void){
 	ssize_t buffsize = 0; // getline allocates a buffer
 	getline(&line, &buffsize, stdin);
 	return line;
+}
 
+#define SH_TOK_BUFSIZE 64
+#define SH_TOK_DELIM " \t\r\n\a"
+char **sh_split_line(char *line)
+{
+  int bufsize = SH_TOK_BUFSIZE, position = 0;
+  char **tokens = malloc(bufsize * sizeof(char*));
+  char *token;
+
+  if (!tokens) {
+    fprintf(stderr, "lsh: allocation error\n");
+    exit(EXIT_FAILURE);
+  }
+
+  token = strtok(line, SH_TOK_DELIM);
+  while (token != NULL) {
+    tokens[position] = token;
+    position++;
+
+    if (position >= bufsize) {
+      bufsize += SH_TOK_BUFSIZE;
+      tokens = realloc(tokens, bufsize * sizeof(char*));
+      if (!tokens) {
+        fprintf(stderr, "lsh: allocation error\n");
+        exit(EXIT_FAILURE);
+      }
+    }
+
+    token = strtok(NULL, SH_TOK_DELIM);
+  }
+  tokens[position] = NULL;
+  return tokens;
 }
 
 int main (int argc, char* argv[]){
@@ -124,11 +157,15 @@ int main (int argc, char* argv[]){
     /*
      * Main shell loop
     */
-    char *line; /* Contais the line from input */
     do {
+    	char *line; /* Contains the line from input */
+    	char **args; /* Contains the splitted args */ 
+
     	sh_print_prompt(prompt);
     	line = sh_read_line();
-    	printf("-----> %s", line);
+    	args = sh_split_line(line);
+
+    	//printf("-----> %s", line);
     } while(1);
 
 	return 0;
