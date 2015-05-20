@@ -69,6 +69,18 @@ char **sh_split_line(char *line)
   return tokens;
 }
 
+/* Function that executes an internal command. Returns the exit code of the command. */
+int sh_launch_int(char **args){
+	printf("TODO: launch an external commmand.\n");
+	return 1;
+}
+
+/* Function that executes an external command. Returns the exit code of the command. */
+int sh_launch_ext(char **args){
+	return execvp(args[0], args);
+	//return system(args);
+}
+
 int main (int argc, char* argv[]){
 	/* Set the program name from argv[0]; */
 	program_name = argv[0];
@@ -158,12 +170,24 @@ int main (int argc, char* argv[]){
      * Main shell loop
     */
     do {
-    	char *line; /* Contains the line from input */
-    	char **args; /* Contains the splitted args */ 
+    	char *line;		/* Contains the line from input */
+    	char **args;	/* Contains the splitted args */
+    	char cmd_mode; /* 'e' external command, 'i' internal command */
+    	int exit_status; 
 
     	sh_print_prompt(prompt);
     	line = sh_read_line();
     	args = sh_split_line(line);
+    	
+    	if (args[0][0] == '!'){
+    		printf("Internal command!\n");
+    		cmd_mode = 'i';
+    		exit_status = sh_launch_int(args);
+    	}else{
+    		printf("External command\n");
+    		cmd_mode = 'e';
+    		exit_status = sh_launch_ext(args);
+    	}
 
     	//printf("-----> %s", line);
     } while(1);
