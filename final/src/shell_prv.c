@@ -3,6 +3,7 @@
 #include <stdlib.h>		// for exit ...
 #include <string.h>		// for strtok, strcmp ...
 #include <sys/wait.h>	// for wait, waitpid, WEXITSTATUS ...
+#include <time.h>		// to get the timestamp
 
 //#define SH_TOK_DELIM " \t\r\n\a"
 
@@ -42,7 +43,7 @@ void print_usage(int exit_code){
 void parse_args(int argc, char *argv[]){
 	// A string listing valid short options
 	const char* const short_options = "p:l:f:";
-	// An array describing valid long options
+	// An array describing the valid long options
 	const struct option long_options[] = {
 		{ "prompt",		required_argument, NULL, 'p' },
 		{ "loglevel",	required_argument, NULL, 'l' },
@@ -129,7 +130,7 @@ char *sh_read_line(void){
 
 /* Function that executes an internal command. Returns the exit code of the command. */
 int sh_launch_int(char *cmd){
-	printf("TODO: launch an external commmand.\n");
+	printf("TODO: launch an internal commmand.\n");
 	return 1;
 }
 
@@ -147,7 +148,27 @@ static void remove_leading_spaces(char** line)
    int i;
    for(i = 0; (((*line)[i] == ' ') || (*line)[i] == '\t' ); i++) { }
    *line += i;
-} 
+}
+
+char *current_timestamp(){
+	char *s = malloc(sizeof(char) * 1000);//[1000];
+	time_t t = time(NULL);
+	struct tm * p = localtime(&t);
+	strftime(s, 1000, "%A, %B %d %Y", p);
+	//printf("[%s]\n", s);
+	return s;
+}
+
+void log_command(char cmd_line[], char cmd_mode, int exit_status){
+	printf("TODO: log command <%s> [%c] [%i]\n", cmd_line, cmd_mode, exit_status);
+	//char *command = strtok(cmd_line, " ");
+	//char *args = cmd_line;
+	//rintf("COMMAND:%s - ARGUMENTS:%s\n", command, cmd_line);
+	printf("[%s]\n", current_timestamp());
+
+	//printf("%s\n", );
+
+}
 
 int main (int argc, char* argv[]){
 	/* Set the program name from argv[0]; */
@@ -161,13 +182,12 @@ int main (int argc, char* argv[]){
     */
     while(!feof(stdin)) {
     	char *line;		// Contains the line from input
-    	char cmd_mode; // 'e' external command, 'i' internal command
+    	char cmd_mode; // 'e' = external command, 'i' = internal command
     	int exit_status; 
 
     	sh_print_prompt(prompt);
     	line = sh_read_line();
 		/* Remove initial empty chars */
-    	/* TODO */
     	remove_leading_spaces(&line);
 
     	if (line[0] == '!'){
@@ -179,6 +199,11 @@ int main (int argc, char* argv[]){
     		cmd_mode = 'e';
     		exit_status = sh_launch_ext(line);
     		printf("Exit code: %i\n", exit_status);
+    	}
+
+    	/* If logging is active log the command */
+    	if(log_status ==1 ){
+    		log_command(line, cmd_mode, exit_status);
     	}
 
     	//printf("-----> %s", line);
