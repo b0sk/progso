@@ -169,7 +169,7 @@ int main (int argc, char* argv[]){
     /*
      * Main shell loop
     */
-    do {
+    while(!feof(stdin)) {
     	char *line;		/* Contains the line from input */
     	char **args;	/* Contains the splitted args */
     	char cmd_mode; /* 'e' external command, 'i' internal command */
@@ -190,7 +190,7 @@ int main (int argc, char* argv[]){
     	}
 
     	//printf("-----> %s", line);
-    } while(1);
+    }
 
 	return 0;
 }
