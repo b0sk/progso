@@ -4,10 +4,24 @@
 #include <string.h>		// for strtok, strcmp ...
 #include <sys/wait.h>	// for wait, waitpid, WEXITSTATUS ...
 
-#define SH_TOK_DELIM " \t\r\n\a"
+//#define SH_TOK_DELIM " \t\r\n\a"
 
 // The name of this program.
 const char* program_name;
+
+/* Global parameters */
+/* 
+ * An int describing log level:
+ * 0 = LOW, 1 = MIDDLE, 2 = HIGH
+ * The default is MIDDLE (1)
+ */
+int loglevel = 1;
+/* The prompt of the shell. Default is "->" */
+char *prompt = "->";
+/* The name of the lofile. Default is "shell.log" */
+char *logfile = "shell.log";
+/* The logging status. Default is ON (1). 1 = ON, 0 = OFF */
+int log_status = 1;
 
 /*
  * Prints usage information about this program and exits with exit_code 
@@ -22,62 +36,10 @@ void print_usage(int exit_code){
 	exit(exit_code);
 }
 
-/*
- * Prints the prompt of the shell
+/* Parse the command line arguments given by the user
+ * and save the result in the global variables.
  */
-void sh_print_prompt(char *prompt){
-	printf("%s ", prompt);
-}
-
-/*
- * Reads a line from input
- */
-char *sh_read_line(void){
-	char *line = NULL;
-	ssize_t buffsize = 0; // getline allocates a buffer
-	getline(&line, &buffsize, stdin);
-	return line;
-}
-
-/* Function that executes an internal command. Returns the exit code of the command. */
-int sh_launch_int(char *cmd){
-	printf("TODO: launch an external commmand.\n");
-	return 1;
-}
-
-/* Function that executes an external command. Returns the exit code of the command. */
-int sh_launch_ext(char *cmd){
-	/* system() returns in the waitpid() format, 
-	 * we use WEXITSTATUS to get the correct value.
-	 */
-	return WEXITSTATUS(system(cmd));
-}
-
-/* Function that removes leading white spaces from line */
-static void remove_leading_spaces(char** line) 
-{   
-   int i;
-   for(i = 0; (((*line)[i] == ' ') || (*line)[i] == '\t' ); i++) { }
-   *line += i;
-} 
-
-int main (int argc, char* argv[]){
-	/* Set the program name from argv[0]; */
-	program_name = argv[0];
-
-	/* 
-	 * An int describing log level:
-	 * 0 = LOW, 1 = MIDDLE, 2 = HIGH
-	 * The default is MIDDLE (1)
-	 */
-	int loglevel = 1;
-
-	/* The prompt of the shell. Default is "->" */
-	char *prompt = "->";
-
-	/* The name of the lofile. Default is "shell.log" */
-	char *logfile = "shell.log";
-
+void parse_args(int argc, char *argv[]){
 	// A string listing valid short options
 	const char* const short_options = "p:l:f:";
 	// An array describing valid long options
@@ -146,12 +108,60 @@ int main (int argc, char* argv[]){
 		print_usage(-1); // Print usage and return error
     }
 
+}
+
+/*
+ * Prints the prompt of the shell
+ */
+void sh_print_prompt(char *prompt){
+	printf("%s ", prompt);
+}
+
+/*
+ * Reads a line from input
+ */
+char *sh_read_line(void){
+	char *line = NULL;
+	ssize_t buffsize = 0; // getline allocates a buffer
+	getline(&line, &buffsize, stdin);
+	return line;
+}
+
+/* Function that executes an internal command. Returns the exit code of the command. */
+int sh_launch_int(char *cmd){
+	printf("TODO: launch an external commmand.\n");
+	return 1;
+}
+
+/* Function that executes an external command. Returns the exit code of the command. */
+int sh_launch_ext(char *cmd){
+	/* system() returns in the waitpid() format, 
+	 * we use WEXITSTATUS to get the correct value.
+	 */
+	return WEXITSTATUS(system(cmd));
+}
+
+/* Function that removes leading white spaces from line */
+static void remove_leading_spaces(char** line) 
+{   
+   int i;
+   for(i = 0; (((*line)[i] == ' ') || (*line)[i] == '\t' ); i++) { }
+   *line += i;
+} 
+
+int main (int argc, char* argv[]){
+	/* Set the program name from argv[0]; */
+	program_name = argv[0];
+
+	/* Parse command line arguments */
+	parse_args(argc, argv);
+
     /*
      * Main shell loop
     */
     while(!feof(stdin)) {
-    	char *line;		/* Contains the line from input */
-    	char cmd_mode; /* 'e' external command, 'i' internal command */
+    	char *line;		// Contains the line from input
+    	char cmd_mode; // 'e' external command, 'i' internal command
     	int exit_status; 
 
     	sh_print_prompt(prompt);
