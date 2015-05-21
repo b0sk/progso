@@ -53,6 +53,14 @@ int sh_launch_ext(char *cmd){
 	return WEXITSTATUS(system(cmd));
 }
 
+/* Function that removes leading white spaces from line */
+static void remove_leading_spaces(char** line) 
+{   
+   int i;
+   for(i = 0; (((*line)[i] == ' ') || (*line)[i] == '\t' ); i++) { }
+   *line += i;
+} 
+
 int main (int argc, char* argv[]){
 	/* Set the program name from argv[0]; */
 	program_name = argv[0];
@@ -149,7 +157,8 @@ int main (int argc, char* argv[]){
     	sh_print_prompt(prompt);
     	line = sh_read_line();
 		/* Remove initial empty chars */
-    	/* TODO */ 
+    	/* TODO */
+    	remove_leading_spaces(&line);
 
     	if (line[0] == '!'){
     		printf("Internal command!\n");
