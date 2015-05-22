@@ -82,7 +82,7 @@ void parse_args(int argc, char *argv[]){
 				// else print usage and exit with error
 				else{
 					printf("Invalid argument for option --loglevel\n");
-					print_usage(-1);
+					print_usage(EXIT_FAILURE);
 				}
 				break;
 			case 'f':	// -f o --logfile
@@ -91,11 +91,11 @@ void parse_args(int argc, char *argv[]){
 				break;
 			case '?':	// Opzione non valida.
 				/* getopt_long prints an error message */
-				print_usage(-1); // Print usage and exit with error
+				print_usage(EXIT_FAILURE); // Print usage and exit with error
 				break;
 			default:	// Opzione non riconosciuta.
 				printf("Invalid option.\n");
-				print_usage(-1); // Print usage and exit with error
+				print_usage(EXIT_FAILURE); // Print usage and exit with error
 		}
 	}
 	
@@ -136,7 +136,10 @@ int sh_launch_int(char *cmd){
 
 /* Function that executes an external command. Returns the exit code of the command. */
 int sh_launch_ext(char *cmd){
-	/* system() returns in the waitpid() format, 
+	if(cmd[0]=='c' && cmd[1]=='d'){
+		printf("CD COMMAND FOUND!\n");
+	}
+	/* system() returns the exit status in the waitpid() format, 
 	 * we use WEXITSTATUS to get the correct value.
 	 */
 	return WEXITSTATUS(system(cmd));
