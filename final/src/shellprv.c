@@ -1,0 +1,400 @@
+#include <getopt.h>
+#include <stdio.h>		// for printf ...
+#include <stdlib.h>		// for exit ...
+#include <string.h>		// for strtok, strcmp ...
+#include <sys/wait.h>	// for wait, waitpid, WEXITSTATUS ...
+#include <time.h>		// to get the timestamp
+#include <unistd.h>		// for chdir, (fork, exec) ...
+
+#define SH_TOK_DELIM " \t\r\n\a"
+
+// The name of this program.
+const char* program_name;
+
+/* Global parameters */
+
+/* 
+ * An int describing log level:
+ * 0 = LOW, 1 = MIDDLE, 2 = HIGH
+ * The default is MIDDLE (1)
+ */
+int loglevel = 1;
+/* The prompt of the shell. Default is "->" */
+char *prompt = "->";
+/* The name of the lofile. Default is "shell.log" */
+char *logfile = "shell.log";
+/* The logging status. Default is ON (1). 1 = ON, 0 = OFF */
+int log_status = 1;
+
+
+/* ------------------------------------------------------------------------------- */
+typedef enum{
+	INTERNAL,
+	EXTERNAL,
+	ND	// Used mainly for newline
+} cmd_mode;
+
+typedef struct{
+	char *cmd;
+	char *args;
+	cmd_mode mode;
+} command;
+
+command parse_command(char *line){
+	command c;
+
+	c.cmd = strtok_r(line, SH_TOK_DELIM, &c.args);
+	/* Remove new line char at the end of args */
+	if (c.args[strlen(c.args)-1] == '\n'){
+		c.args[strlen(c.args)-1] = '\0';
+	}
+
+	if(c.cmd == NULL){
+		c.cmd = "-";
+		c.mode = ND;
+	}else if(c.cmd[0] == '!'){
+		c.mode = INTERNAL;
+	}else{
+		c.mode = EXTERNAL;
+	}
+	return c;
+}
+
+
+/* Concatenates 2 strings with a spece in between */
+char* str_concat(char *s1, char *s2){
+    char *result = malloc(strlen(s1)+strlen(s2)+2);//+1 for the zero-terminator + 1 for space
+    //error check malloc here!
+    strcpy(result, s1);
+    strcat(result, " ");
+    strcat(result, s2);
+    return result;
+}
+
+
+int sh_launch(command c){
+	int exit_status;
+	if (c.mode == EXTERNAL){
+		exit_status = sh_launch_ext(c);
+	}else if (c.mode == INTERNAL){
+		exit_status = sh_launch_int(c);
+	}else {
+		exit_status = 0;
+	}
+	return exit_status;
+}
+
+/* Function that executes an internal command. Returns the exit code of the command. */
+int sh_launch_int(command c){
+	printf("TODO: launch an internal commmand.\n");
+	return 1;
+}
+
+/* Function that executes an external command. Returns the exit code of the command. */
+int sh_launch_ext(command c){
+	int exit_code;
+
+	/* If the command "cd" is found call the builtin function. Else execute the command */
+	if(strcmp(c.cmd, "cd") ==0 ){
+		exit_code = sh_cmd_cd(c.args);
+	}else{
+		/* system() returns the exit status in the waitpid() format, 
+		 * we use WEXITSTATUS to get the correct value.
+		 */
+		exit_code = WEXITSTATUS(system((char*)str_concat(c.cmd, c.args)));
+	}
+
+	return exit_code;
+}
+
+/* This function returns a string with the current timestamp 
+ * in the format "Day, Month DD YYYY - hh:mm:ss"
+ */
+char *current_timestamp(){
+	char *s = malloc(sizeof(char) * 1000);//[1000];
+	time_t t = time(NULL);
+	struct tm * p = localtime(&t);
+	strftime(s, 1000, "%A, %B %d %Y - %T", p);
+	return s;
+}
+
+void log_command(command c, int exit_status){
+	/* log the current timestamp */
+	printf("[%s] ", current_timestamp());
+
+	/* If loglevel is middle or high, log the command + arguments */
+	if (loglevel >= 1){
+		printf("%s ", str_concat(c.cmd, c.args));
+	} else { /* else log only the command */
+		printf("%s ", c.cmd);
+	}
+
+	/* If loglevel is high, log command mode (external or internal).
+	 * If the command is ND (a new line) print "[-]".
+	 */
+	if(loglevel == 2){
+		char cmd_mode;
+		switch(c.mode){
+			case INTERNAL:
+				cmd_mode = 'e';
+				break;
+			case EXTERNAL:
+				cmd_mode = 'i';
+				break;
+			default:
+				cmd_mode = '-';
+				break;
+		}
+		printf("[%c] ", cmd_mode);
+	}
+
+	/* Log the exit status */
+	printf("(%i)\n", exit_status);
+}
+
+/* ------------------------------------------------------------------------------- */
+
+/*
+ * Prints usage information about this program and exits with exit_code 
+ */
+void print_usage(int exit_code){
+	printf("Usage: %s <option> <argument>\n", program_name);
+	printf(
+			"  -p, --prompt <prompt>		Set the prompt of the shell\n"
+			"  -l, --loglevel <level>	Set the loglevel [low, middle, high]\n"
+			"  -f, --logfile <filename>	Set the logfile name\n"
+	);
+	exit(exit_code);
+}
+
+/* Parse the command line arguments given by the user
+ * and save the result in the global variables.
+ */
+void parse_args(int argc, char *argv[]){
+	// A string listing valid short options
+	const char* const short_options = "p:l:f:";
+	// An array describing the valid long options
+	const struct option long_options[] = {
+		{ "prompt",		required_argument, NULL, 'p' },
+		{ "loglevel",	required_argument, NULL, 'l' },
+		{ "logfile",	required_argument, NULL, 'f' },
+		{ 0, 0, 0, 0 } //Required
+	};
+	
+	int next_opt;
+	while(1){
+		/* getopt_long stores the option index here. */
+		int next_opt = getopt_long (argc, argv, short_options, long_options, NULL);
+		/* Detect the end of the options. */
+		if (next_opt == -1)
+			break;
+		switch(next_opt){
+			case 0:
+				//printf("Case 0!\n");
+				break;
+			case 'p':	// -p o --prompt
+				printf("Option PROMPT with argument: %s\n", optarg);
+				/* Set the prompt from argument */ 
+				prompt = optarg;
+				break;
+			case 'l':	// -l o --loglevel
+				printf("Option LOGLEVEL with argument: %s\n", optarg);
+				
+				// if arg is low set loglevel to 0
+				if(strcmp(optarg, "low") == 0) 
+					loglevel = 0;
+				// if arg is middle set loglevel to 1
+				else if(strcmp(optarg, "middle") == 0)
+					loglevel = 1;
+				// if arg is middle set loglevel to 2
+				else if(strcmp(optarg, "high") == 0)
+					loglevel = 2;
+				// else print usage and exit with error
+				else{
+					printf("Invalid argument for option --loglevel\n");
+					print_usage(EXIT_FAILURE);
+				}
+				break;
+			case 'f':	// -f o --logfile
+				printf("Option LOGFILE with argument: %s\n", optarg);
+				logfile = optarg;
+				break;
+			case '?':	// Opzione non valida.
+				/* getopt_long prints an error message */
+				print_usage(EXIT_FAILURE); // Print usage and exit with error
+				break;
+			default:	// Opzione non riconosciuta.
+				printf("Invalid option.\n");
+				print_usage(EXIT_FAILURE); // Print usage and exit with error
+		}
+	}
+	
+	/* Print any remaining command line arguments (not options). */
+	if (optind < argc){
+		printf ("non-option ARGV-elements: ");
+		while (optind < argc)
+			printf ("%s ", argv[optind++]);
+		putchar ('\n');
+		
+		print_usage(-1); // Print usage and return error
+    }
+
+}
+
+
+/*
+ * Prints the prompt of the shell
+ */
+void sh_print_prompt(char *prompt){
+	printf("%s ", prompt);
+}
+
+/*
+ * Reads a line from input
+ */
+char *sh_read_line(void){
+	char *line = NULL;
+	ssize_t buffsize = 0; // getline allocates a buffer
+	if(getline(&line, &buffsize, stdin) == -1){
+		//perror("sh error");
+		free(line);
+		exit(EXIT_FAILURE);
+	}
+	return line;
+}
+
+
+/* Internal commands implementation */
+
+/* This function implements the "cd" command:
+ * changes the working directory and returns
+ * the exit code.
+ */
+int sh_cmd_cd(char *args){
+	char *path = strtok(args, SH_TOK_DELIM);
+	int exit_code = chdir(path);
+	if (exit_code != 0) {
+  		perror("cd");
+	}
+	return exit_code;
+}
+
+/* This function prints the current logging level */
+int sh_cmd_showlevel(){
+	char *level;
+	switch(loglevel){
+		case 0:
+			level = "low";
+			break;
+		case 1:
+			level = "middle";
+			break;
+		case 2:
+			level = "high";
+			break;
+		default:
+			return 1;
+	}
+	printf("The logging level is [%s].\n", level);
+	return 0;
+}
+
+/* This function turns on the logging (log_status = 1) */
+int sh_cmd_logon(){
+	log_status = 1;
+	return 0;
+}
+
+/* This function turns off the logging (log_status = 0) */
+int sh_cmd_logoff(){
+	log_status = 0;
+	return 0;
+}
+
+/* This function sets the logging level to lv and returns 0.
+ * If the argument is wrong it prints a message and returns 1.
+ */
+int sh_cmd_setlevel(char *lv){
+	int ret = 0;
+	// if lv is low set loglevel to 0
+	if(strcmp(lv, "low") == 0) 
+		loglevel = 0;
+	// if arg is middle set loglevel to 1
+	else if(strcmp(lv, "middle") == 0)
+		loglevel = 1;
+	// if arg is middle set loglevel to 2
+	else if(strcmp(lv, "high") == 0)
+		loglevel = 2;
+	// else show how to use command
+	else{
+		ret = 1;
+		printf("Invalid option. Possible levels are: low, middle or high.\n");
+	}
+	return ret;
+}
+
+/* This function sets the prompr to pr */
+int sh_cmd_setprompt(char *pr){
+	prompt = pr; /* CHECK THIS!! */
+	return 0;
+}
+
+/* This function quits the shell */
+int sh_cmd_quit(){
+	exit(EXIT_SUCCESS);
+}
+
+
+/* Function that removes leading white spaces from a string */
+static void remove_leading_spaces(char** line) 
+{   
+   int i;
+   for(i = 0; (((*line)[i] == ' ') || (*line)[i] == '\t' ); i++) { }
+   *line += i;
+}
+
+
+
+int main (int argc, char* argv[]){
+	/* Set the program name from argv[0]; */
+	program_name = argv[0];
+
+	/* Parse command line arguments */
+	parse_args(argc, argv);
+
+    /*
+     * Main shell loop
+    */
+    while(!feof(stdin)) {
+    	printf("FEOF: %i\n", feof(stdin));
+    	char *line;		// Contains the line from input
+    	int exit_status; 
+
+    	sh_print_prompt(prompt);
+    	
+    	line = sh_read_line();
+    	if (line == NULL){
+    		printf("KUMACAA\n");
+    	}
+		/* Remove initial empty chars */
+    	remove_leading_spaces(&line);
+
+    	command c = parse_command(line);
+    	//printf("CMD: %s\n", c.cmd);
+    	//printf("ARGS: %s\n", c.args);
+		//printf("CMD_MODE: %c\n", c.cmd_mode);
+    	
+    	exit_status = sh_launch(c);
+
+    	/* If logging is active log the command */
+    	if(log_status == 1){
+    		log_command(c, exit_status);
+    	}
+
+    	free(line); //needed?
+
+    	//printf("-----> %s", line);
+    }
+
+	return 0;
+}
