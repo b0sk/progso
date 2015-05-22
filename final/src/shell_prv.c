@@ -4,8 +4,9 @@
 #include <string.h>		// for strtok, strcmp ...
 #include <sys/wait.h>	// for wait, waitpid, WEXITSTATUS ...
 #include <time.h>		// to get the timestamp
+#include <unistd.h>		// for chdir, (fork, exec) ...
 
-//#define SH_TOK_DELIM " \t\r\n\a"
+#define SH_TOK_DELIM " \t\r\n\a"
 
 // The name of this program.
 const char* program_name;
@@ -111,6 +112,7 @@ void parse_args(int argc, char *argv[]){
 
 }
 
+
 /*
  * Prints the prompt of the shell
  */
@@ -128,6 +130,23 @@ char *sh_read_line(void){
 	return line;
 }
 
+
+/* Internal commands implementation */
+
+/* This function implements the "cd" command:
+ * changes the working directory and returns
+ * the exit code.
+ */
+int sh_cmd_cd(char *args){
+	char *path = strtok(args, SH_TOK_DELIM);
+	int exit_code = chdir(path);
+	if (exit_code != 0) {
+  		perror("Error");
+	}
+	return exit_code;
+}
+
+
 /* Function that executes an internal command. Returns the exit code of the command. */
 int sh_launch_int(char *cmd){
 	printf("TODO: launch an internal commmand.\n");
@@ -136,22 +155,30 @@ int sh_launch_int(char *cmd){
 
 /* Function that executes an external command. Returns the exit code of the command. */
 int sh_launch_ext(char *cmd){
+	int exit_code;
+
+	/* If the command "cd" is found call the builtin function. Else execute the command */
 	if(cmd[0]=='c' && cmd[1]=='d'){
-		printf("CD COMMAND FOUND!\n");
+		exit_code = sh_cmd_cd(cmd+3);
+	}else{
+		/* system() returns the exit status in the waitpid() format, 
+		 * we use WEXITSTATUS to get the correct value.
+		 */
+		exit_code = WEXITSTATUS(system(cmd));
 	}
-	/* system() returns the exit status in the waitpid() format, 
-	 * we use WEXITSTATUS to get the correct value.
-	 */
-	return WEXITSTATUS(system(cmd));
+
+	return exit_code;
 }
 
-/* Function that removes leading white spaces from line */
+
+/* Function that removes leading white spaces from a string */
 static void remove_leading_spaces(char** line) 
 {   
    int i;
    for(i = 0; (((*line)[i] == ' ') || (*line)[i] == '\t' ); i++) { }
    *line += i;
 }
+
 /* This function returns a string with the current timestamp 
  * in the format "Day, Month DD YYYY - hh:mm:ss"
  */
@@ -164,16 +191,15 @@ char *current_timestamp(){
 }
 
 void log_command(char cmd_line[], char cmd_mode, int exit_status){
-	//printf("TODO: log command <%s> [%c] [%i]\n", cmd_line, cmd_mode, exit_status);
 	/* log the current timestamp */
 	printf("[%s] ", current_timestamp());
 
 	/* If loglevel is middle or high, log the command + arguments */
-	char *pch = strtok(cmd_line, " \n");
+	char *pch = strtok(cmd_line, SH_TOK_DELIM);
 	if (loglevel >= 1){
 		while (pch != NULL){
 			printf("%s ", pch);
-			pch = strtok(NULL, " \n");
+			pch = strtok(NULL, SH_TOK_DELIM);
 		}
 	} else { /* else log only the command */
 		printf("%s ", pch);
