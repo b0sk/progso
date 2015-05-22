@@ -146,6 +146,65 @@ int sh_cmd_cd(char *args){
 	return exit_code;
 }
 
+/* This function prints the current logging level */
+int sh_cmd_showlevel(){
+	char *level;
+	switch(loglevel){
+		case 0:
+			level = "low";
+			break;
+		case 1:
+			level = "middle";
+			break;
+		case 2:
+			level = "high";
+			break;
+		default:
+			return 1;
+	}
+	printf("The current logging level is [%s]\n", level);
+	return 0;
+}
+
+/* This function turns on the logging (log_status = 1) */
+int sh_cmd_logon(){
+	log_status = 1;
+	return 0;
+}
+
+/* This function turns off the logging (log_status = 0) */
+int sh_cmd_logoff(){
+	log_status = 0;
+	return 0;
+}
+
+/* This function sets the logging level to lv and returns 0.
+ * If the argument is wrong it prints a message and returns 1.
+ */
+int sh_cmd_setlevel(char *lv){
+	int ret = 0;
+	// if lv is low set loglevel to 0
+	if(strcmp(lv, "low") == 0) 
+		loglevel = 0;
+	// if arg is middle set loglevel to 1
+	else if(strcmp(lv, "middle") == 0)
+		loglevel = 1;
+	// if arg is middle set loglevel to 2
+	else if(strcmp(lv, "high") == 0)
+		loglevel = 2;
+	// else show how to use command
+	else{
+		ret = 1;
+		printf("Invalid option. Possible levels are: low, middle or high.\n");
+	}
+	return ret;
+}
+
+/* This function sets the prompr to pr */
+int sh_cmd_setprompt(char *pr){
+	prompt = pr; /* CHECK THIS!! */
+	return 0;
+}
 
 /* Function that executes an internal command. Returns the exit code of the command. */
 int sh_launch_int(char *cmd){
