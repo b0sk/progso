@@ -141,7 +141,7 @@ int sh_cmd_cd(char *args){
 	char *path = strtok(args, SH_TOK_DELIM);
 	int exit_code = chdir(path);
 	if (exit_code != 0) {
-  		perror("Error");
+  		perror("cd error");
 	}
 	return exit_code;
 }
@@ -162,7 +162,7 @@ int sh_cmd_showlevel(){
 		default:
 			return 1;
 	}
-	printf("The current logging level is [%s]\n", level);
+	printf("The logging level is [%s].\n", level);
 	return 0;
 }
 
@@ -205,6 +205,12 @@ int sh_cmd_setprompt(char *pr){
 	prompt = pr; /* CHECK THIS!! */
 	return 0;
 }
+
+/* This function quits the shell */
+int sh_cmd_quit(){
+	exit(EXIT_SUCCESS);
+}
+
 
 /* Function that executes an internal command. Returns the exit code of the command. */
 int sh_launch_int(char *cmd){
