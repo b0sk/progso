@@ -149,25 +149,40 @@ static void remove_leading_spaces(char** line)
    for(i = 0; (((*line)[i] == ' ') || (*line)[i] == '\t' ); i++) { }
    *line += i;
 }
-
+/* This function returns a string with the current timestamp 
+ * in the format "Day, Month DD YYYY - hh:mm:ss"
+ */
 char *current_timestamp(){
 	char *s = malloc(sizeof(char) * 1000);//[1000];
 	time_t t = time(NULL);
 	struct tm * p = localtime(&t);
-	strftime(s, 1000, "%A, %B %d %Y", p);
-	//printf("[%s]\n", s);
+	strftime(s, 1000, "%A, %B %d %Y - %T", p);
 	return s;
 }
 
 void log_command(char cmd_line[], char cmd_mode, int exit_status){
-	printf("TODO: log command <%s> [%c] [%i]\n", cmd_line, cmd_mode, exit_status);
-	//char *command = strtok(cmd_line, " ");
-	//char *args = cmd_line;
-	//rintf("COMMAND:%s - ARGUMENTS:%s\n", command, cmd_line);
-	printf("[%s]\n", current_timestamp());
+	//printf("TODO: log command <%s> [%c] [%i]\n", cmd_line, cmd_mode, exit_status);
+	/* log the current timestamp */
+	printf("[%s] ", current_timestamp());
 
-	//printf("%s\n", );
+	/* If loglevel is middle or high, log the command + arguments */
+	char *pch = strtok(cmd_line, " \n");
+	if (loglevel >= 1){
+		while (pch != NULL){
+			printf("%s ", pch);
+			pch = strtok(NULL, " \n");
+		}
+	} else { /* else log only the command */
+		printf("%s ", pch);
+	}
 
+	/* If loglevel is high, log command mode (external or internal) */
+	if(loglevel == 2){
+		printf("[%c] ", cmd_mode);
+	}
+
+	/* Log the exit status */
+	printf("(%i)\n", exit_status);
 }
 
 int main (int argc, char* argv[]){
@@ -186,6 +201,7 @@ int main (int argc, char* argv[]){
     	int exit_status; 
 
     	sh_print_prompt(prompt);
+    	
     	line = sh_read_line();
 		/* Remove initial empty chars */
     	remove_leading_spaces(&line);
@@ -198,11 +214,10 @@ int main (int argc, char* argv[]){
     		printf("External command\n");
     		cmd_mode = 'e';
     		exit_status = sh_launch_ext(line);
-    		printf("Exit code: %i\n", exit_status);
     	}
 
     	/* If logging is active log the command */
-    	if(log_status ==1 ){
+    	if(log_status == 1){
     		log_command(line, cmd_mode, exit_status);
     	}
 
