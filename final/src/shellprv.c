@@ -162,17 +162,25 @@ char *current_timestamp(){
 }
 
 void log_command(command c, int exit_status){
+	/* open the logfile in append mode */
+	FILE *fp;
+	fp = fopen(logfile, "a");
+	if (fp == NULL){
+		perror("Error opening the file. Commands won't be logged.");
+		return;
+	}
+
 	/* log the current timestamp */
 	char *timestamp = current_timestamp();
-	printf("[%s] ", timestamp);
+	fprintf(fp, "[%s] ", timestamp);
 
 	/* If loglevel is middle or high, log the command + arguments */
 	if (loglevel >= 1){
 		char *str = str_concat(c.cmd, c.args);
-		printf("%s ", str);
+		fprintf(fp, "%s ", str);
 		free(str);
 	} else { /* else log only the command */
-		printf("%s ", c.cmd);
+		fprintf(fp, "%s ", c.cmd);
 	}
 
 	/* If loglevel is high, log command mode (external or internal).
@@ -191,12 +199,13 @@ void log_command(command c, int exit_status){
 				cmd_mode = '-';
 				break;
 		}
-		printf("[%c] ", cmd_mode);
+		fprintf(fp, "[%c] ", cmd_mode);
 	}
 
 	/* Log the exit status */
-	printf("(%i)\n", exit_status);
+	fprintf(fp, "(%i)\n", exit_status);
 
+	fclose(fp);
 	free(timestamp);
 }
 
