@@ -42,7 +42,7 @@ typedef struct{
 
 command parse_command(char *line){
 	command c;
-
+	/* Split the string on the first space. And set c.cmd and c.args */
 	c.cmd = strtok_r(line, SH_TOK_DELIM, &c.args);
 	/* Remove new line char at the end of args */
 	if (c.args[strlen(c.args)-1] == '\n'){
@@ -51,6 +51,7 @@ command parse_command(char *line){
 
 	if(c.cmd == NULL){
 		c.cmd = "-";
+		c.args = "-";
 		c.mode = ND;
 	}else if(c.cmd[0] == '!'){
 		c.mode = INTERNAL;
@@ -63,7 +64,7 @@ command parse_command(char *line){
 
 /* Concatenates 2 strings with a spece in between */
 char* str_concat(char *s1, char *s2){
-    char *result = malloc(strlen(s1)+strlen(s2)+2);//+1 for the zero-terminator + 1 for space
+    char *result = malloc(strlen(s1)+strlen(s2)+2); //+1 for the zero-terminator + 1 for space
     //error check malloc here!
     strcpy(result, s1);
     strcat(result, " ");
@@ -101,7 +102,9 @@ int sh_launch_ext(command c){
 		/* system() returns the exit status in the waitpid() format, 
 		 * we use WEXITSTATUS to get the correct value.
 		 */
-		exit_code = WEXITSTATUS(system((char*)str_concat(c.cmd, c.args)));
+		char *str = str_concat(c.cmd, c.args);
+		exit_code = WEXITSTATUS(system(str));
+		free(str);
 	}
 
 	return exit_code;
@@ -111,7 +114,7 @@ int sh_launch_ext(command c){
  * in the format "Day, Month DD YYYY - hh:mm:ss"
  */
 char *current_timestamp(){
-	char *s = malloc(sizeof(char) * 1000);//[1000];
+	char *s = malloc(sizeof(char) * 400);//[1000];
 	time_t t = time(NULL);
 	struct tm * p = localtime(&t);
 	strftime(s, 1000, "%A, %B %d %Y - %T", p);
@@ -120,11 +123,14 @@ char *current_timestamp(){
 
 void log_command(command c, int exit_status){
 	/* log the current timestamp */
-	printf("[%s] ", current_timestamp());
+	char *timestamp = current_timestamp();
+	printf("[%s] ", timestamp);
 
 	/* If loglevel is middle or high, log the command + arguments */
 	if (loglevel >= 1){
-		printf("%s ", str_concat(c.cmd, c.args));
+		char *str = str_concat(c.cmd, c.args);
+		printf("%s ", str);
+		free(str);
 	} else { /* else log only the command */
 		printf("%s ", c.cmd);
 	}
@@ -150,6 +156,8 @@ void log_command(command c, int exit_status){
 
 	/* Log the exit status */
 	printf("(%i)\n", exit_status);
+
+	free(timestamp);
 }
 
 /* ------------------------------------------------------------------------------- */
@@ -366,20 +374,17 @@ int main (int argc, char* argv[]){
      * Main shell loop
     */
     while(!feof(stdin)) {
-    	printf("FEOF: %i\n", feof(stdin));
     	char *line;		// Contains the line from input
     	int exit_status; 
 
     	sh_print_prompt(prompt);
     	
     	line = sh_read_line();
-    	if (line == NULL){
-    		printf("KUMACAA\n");
-    	}
 		/* Remove initial empty chars */
-    	remove_leading_spaces(&line);
+		char *ln = line;
+    	remove_leading_spaces(&ln);
 
-    	command c = parse_command(line);
+    	command c = parse_command(ln);
     	//printf("CMD: %s\n", c.cmd);
     	//printf("ARGS: %s\n", c.args);
 		//printf("CMD_MODE: %c\n", c.cmd_mode);
@@ -391,7 +396,7 @@ int main (int argc, char* argv[]){
     		log_command(c, exit_status);
     	}
 
-    	free(line); //needed?
+    	free(line); //needed?!?!
 
     	//printf("-----> %s", line);
     }
