@@ -107,9 +107,8 @@ int sh_launch(command c){
  * Returns the exit code of the command. 
  */
 int sh_launch_int(command c){
-	//printf("TODO: launch an internal commmand.\n");
-
 	int exit_code = 1;
+
 	if (strcmp(c.cmd, "!showlevel") == 0){
 		//printf("Internal command showlevel\n");
 		exit_code = sh_cmd_showlevel();
@@ -135,7 +134,8 @@ int sh_launch_int(command c){
 		exit_code = sh_cmd_setprompt(c.args);
 	}
 	else if (strcmp(c.cmd, "!run") == 0){
-		printf("Internal command run\n");
+		//printf("Internal command run\n");
+		exit_code = sh_cmd_run(c.args);
 	}
 	else if (strcmp(c.cmd, "!quit") == 0){
 		//printf("Internal command quit\n");
@@ -492,6 +492,7 @@ int sh_cmd_logclear(){
 int sh_cmd_setfile(char *name){
 	char *n = malloc(strlen(name)+1);
 	strcpy(n, name);
+
 	if (rename(logfile, n) != 0){
 		perror("Error renaming file");
 		free(n);
@@ -519,6 +520,19 @@ int sh_cmd_setprompt(char *pr){
 		prompt = pr;
 	}
 	return ret;
+}
+
+/*
+ * This function takes a command as a string
+ * and executes it in a new process using a fork
+ * returns the exit code of the command, 
+ * which is returned by the child process...
+ * if the fork fails returns -1
+ */
+int sh_cmd_run(char *comm){
+	printf("TODO: implement !run command\n");
+
+	return 1;
 }
 
 /* This function quits the shell */
