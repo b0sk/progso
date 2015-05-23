@@ -28,18 +28,30 @@ int log_status = 1;
 
 
 /* ------------------------------------------------------------------------------- */
+/* 
+ * cmd_mode can be INTERNAL or EXTERNAL.
+ * ND is usually used when the user only enters a newline
+*/
 typedef enum{
 	INTERNAL,
 	EXTERNAL,
 	ND	// Used mainly for newline
 } cmd_mode;
 
+/*
+ * command represents a command that the user has entered
+ * it's composed by cmd, the actual command and args the arguments
+ * cmd_mode represents the type of command (EXTERNAL or INTERNAL)
+ */
 typedef struct{
 	char *cmd;
 	char *args;
 	cmd_mode mode;
 } command;
 
+/*  
+ * given a string generates a command with the correct cmd, args and cmd_mode
+*/
 command parse_command(char *line){
 	command c;
 	/* Split the string on the first space. And set c.cmd and c.args */
@@ -61,8 +73,10 @@ command parse_command(char *line){
 	return c;
 }
 
-
-/* Concatenates 2 strings with a spece in between */
+/*
+ * Concatenates 2 strings with a spece in between 
+ * and returns the resulting string.
+ */
 char* str_concat(char *s1, char *s2){
     char *result = malloc(strlen(s1)+strlen(s2)+2); //+1 for the zero-terminator + 1 for space
     //error check malloc here!
@@ -72,7 +86,10 @@ char* str_concat(char *s1, char *s2){
     return result;
 }
 
-
+/*
+ * Executes the coorect command (internal or external)
+ * returns the exit code of the command.
+ */
 int sh_launch(command c){
 	int exit_status;
 	if (c.mode == EXTERNAL){
@@ -85,7 +102,10 @@ int sh_launch(command c){
 	return exit_status;
 }
 
-/* Function that executes an internal command. Returns the exit code of the command. */
+/*
+ * Function that executes an internal command. 
+ * Returns the exit code of the command. 
+ */
 int sh_launch_int(command c){
 	//printf("TODO: launch an internal commmand.\n");
 
@@ -140,7 +160,10 @@ int sh_launch_int(command c){
 	return exit_code;
 }
 
-/* Function that executes an external command. Returns the exit code of the command. */
+/*
+ * Function that executes an external command.
+ * Returns the exit code of the command.
+ */
 int sh_launch_ext(command c){
 	int exit_code;
 
@@ -159,7 +182,8 @@ int sh_launch_ext(command c){
 	return exit_code;
 }
 
-/* This function returns a string with the current timestamp 
+/*
+ * This function returns a string with the current timestamp 
  * in the format "Day, Month DD YYYY - hh:mm:ss"
  */
 char *current_timestamp(){
@@ -170,6 +194,15 @@ char *current_timestamp(){
 	return s;
 }
 
+/*
+ * This function takes as input a command c and its exit status
+ * and logs it in the logfile, appending a line at the end.
+ * If the loglevel is set to low it logs the timestamp, the command
+ * and the exit status. If the loglevel is middle, it adds the arguments
+ * and if the loglevel is high it adds the command mode ('i' or 'e').
+ * The resulting line is in the format 
+ * "[Day, Month DD YYYY - hh:mm:ss] command arguments [e|i] (exit_status)"
+*/
 void log_command(command c, int exit_status){
 	/* open the logfile in append mode */
 	FILE *fp;
@@ -233,7 +266,8 @@ void print_usage(int exit_code){
 	exit(exit_code);
 }
 
-/* Parse the command line arguments given by the user
+/*
+ * Parse the command line arguments given by the user
  * and save the result in the global variables.
  */
 void parse_args(int argc, char *argv[]){
@@ -315,7 +349,7 @@ void sh_print_prompt(char *prompt){
 }
 
 /*
- * Reads a line from input
+ * Reads a line from input and returns it.
  */
 char *sh_read_line(void){
 	char *line = NULL;
@@ -331,9 +365,10 @@ char *sh_read_line(void){
 
 /* Internal commands implementation */
 
-/* This function implements the "cd" command:
+/*
+ * This function implements the "cd" command:
  * changes the working directory and returns
- * the exit code.
+ * the exit code of chdir.
  */
 int sh_cmd_cd(char *args){
 	char *path = strtok(args, SH_TOK_DELIM);
@@ -364,7 +399,8 @@ int sh_cmd_showlevel(){
 	return 0;
 }
 
-/* This function sets the logging level to lv and returns 0.
+/*
+ * This function sets the logging level to lv and returns 0.
  * If the argument is wrong it prints a message and returns 1.
  */
 int sh_cmd_setlevel(char *lv){
@@ -406,7 +442,8 @@ int sh_cmd_logoff(){
 	return 0;
 }
 
-/* This functions reads the logfile and prints the content
+/*
+ * This functions reads the logfile and prints the content
  * If there is an error returns 1, else returns 0.
 */
 int sh_cmd_logshow(){
@@ -432,7 +469,8 @@ int sh_cmd_logshow(){
 	return 0;
 }
 
-/* This function clears the content of the logfile.
+/*
+ * This function clears the content of the logfile.
  * If there is an error returns 1, else returns 0.
 */
 int sh_cmd_logclear(){
@@ -447,7 +485,8 @@ int sh_cmd_logclear(){
 	return 0;
 }
 
-/* Set the new logfile name and rename the current one.
+/*
+ * Set the new logfile name and rename the current one.
  * If there is an error returns 1, else returns 0.
 */
 int sh_cmd_setfile(char *name){
@@ -467,7 +506,10 @@ int sh_cmd_setfile(char *name){
 	return 0;
 }
 
-/* This function sets the prompr to pr */
+/*
+ * This function sets the prompt to pr and returns o on succes
+ * if no arguments is specified, prints and error and returns 1.
+*/
 int sh_cmd_setprompt(char *pr){
 	int ret = 0;
 	if(pr[0]=='\0'){
@@ -503,7 +545,7 @@ int sh_cmd_help(){
 }
 
 
-/* Function that removes leading white spaces from a string */
+/* Function that removes leading white spaces from the string line */
 static void remove_leading_spaces(char** line) 
 {   
    int i;
@@ -520,25 +562,25 @@ int main (int argc, char* argv[]){
 	/* Parse command line arguments */
 	parse_args(argc, argv);
 
-    /*
-     * Main shell loop
-    */
+    /* Main shell loop */
     while(!feof(stdin)) {
     	char *line;		// Contains the line from input
     	int exit_status; 
 
+    	/* Print eh shell prompt */
     	sh_print_prompt(prompt);
     	
+    	/* Read a line from input */
     	line = sh_read_line();
+
 		/* Remove initial empty chars */
 		char *ln = line;
     	remove_leading_spaces(&ln);
 
+    	/* Parse the command */
     	command c = parse_command(ln);
-    	//printf("CMD: %s\n", c.cmd);
-    	//printf("ARGS: %s\n", c.args);
-		//printf("CMD_MODE: %c\n", c.cmd_mode);
-    	
+
+    	/* Launch the command and save the exit status */    	
     	exit_status = sh_launch(c);
 
     	/* If logging is active log the command */
@@ -546,7 +588,7 @@ int main (int argc, char* argv[]){
     		log_command(c, exit_status);
     	}
 
-    	free(line); //needed?!?!
+    	free(line);
     }
 
 	return 0;
