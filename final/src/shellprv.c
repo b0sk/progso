@@ -125,8 +125,12 @@ int sh_launch_int(command c){
 		//printf("Internal command help\n");
 		exit_code = sh_cmd_help();
 	}
+	else if (strcmp(c.cmd, "!logclear") == 0){
+		//printf("Internal command logclear\n");
+		exit_code = sh_cmd_logclear();
+	}
 	else {
-		printf("Internal command not found!\n");
+		printf("Internal command not found. Use !help to see a list of commands.\n");
 	}
 
 	return exit_code;
@@ -420,7 +424,20 @@ int sh_cmd_logshow(){
 	if(line)
 		free(line);
 	return 0;
-} 
+}
+
+/* This function clears the content of the logfile */
+int sh_cmd_logclear(){
+	FILE *fp;
+	fp = fopen(logfile, "a");
+	if (fp == NULL){
+		perror("Error opening the file.");
+		return 1;
+	}
+	/* Clear the file content */
+	fclose(fopen(logfile, "w"));
+	return 0;
+}
 
 /* This function sets the prompr to pr */
 int sh_cmd_setprompt(char *pr){
@@ -443,10 +460,11 @@ int sh_cmd_quit(){
 int sh_cmd_help(){
 	printf(	"Valid internal commands are:\n"
 			"\n!help\n >Show this help message.\n"
-			"\n!showlevel\n >Show the current logging level.\n"
 			"\n!logon\n >Turns logging ON.\n"
 			"\n!logoff\n <Turns logging OFF\n"
 			"\n!logshow\n >Shows the log file content.\n"
+			"\n!logclear\n >Clears the log file content.\n"
+			"\n!showlevel\n >Show the current logging level.\n"
 			"\n!setlevel <low|middle|high>\n >Sets the logging level to the specified value.\n"
 			"\n!setprompt <prompt>\n >Set the prompt to the specified string.\n"
 			"\n!run <command>\n >Runs a command in a separate process.\n"
