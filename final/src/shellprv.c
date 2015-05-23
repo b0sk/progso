@@ -1,5 +1,5 @@
 #include <getopt.h>
-#include <stdio.h>		// for printf ...
+#include <stdio.h>		// for printf, rename ...
 #include <stdlib.h>		// for exit ...
 #include <string.h>		// for strtok, strcmp ...
 #include <sys/wait.h>	// for wait, waitpid, WEXITSTATUS ...
@@ -128,6 +128,10 @@ int sh_launch_int(command c){
 	else if (strcmp(c.cmd, "!logclear") == 0){
 		//printf("Internal command logclear\n");
 		exit_code = sh_cmd_logclear();
+	}
+	else if (strcmp(c.cmd, "!setfile") == 0){
+		//printf("Internal command setfile\n");
+		exit_code = sh_cmd_setfile(c.args);
 	}
 	else {
 		printf("Internal command not found. Use !help to see a list of commands.\n");
@@ -402,7 +406,9 @@ int sh_cmd_logoff(){
 	return 0;
 }
 
-/* This functions reads the logfile and prints the content */
+/* This functions reads the logfile and prints the content
+ * If there is an error returns 1, else returns 0.
+*/
 int sh_cmd_logshow(){
 	FILE *fp;
 	char *line = NULL;
@@ -426,7 +432,9 @@ int sh_cmd_logshow(){
 	return 0;
 }
 
-/* This function clears the content of the logfile */
+/* This function clears the content of the logfile.
+ * If there is an error returns 1, else returns 0.
+*/
 int sh_cmd_logclear(){
 	FILE *fp;
 	fp = fopen(logfile, "a");
@@ -436,6 +444,26 @@ int sh_cmd_logclear(){
 	}
 	/* Clear the file content */
 	fclose(fopen(logfile, "w"));
+	return 0;
+}
+
+/* Set the new logfile name and rename the current one.
+ * If there is an error returns 1, else returns 0.
+*/
+int sh_cmd_setfile(char *name){
+	char *n = malloc(strlen(name)+1);
+	strcpy(n, name);
+	if (rename(logfile, n) != 0){
+		perror("Error renaming file");
+		free(n);
+		return 1;
+	}
+
+	/* Creates the file if doesn't exist */
+	fclose(fopen(n, "a"));
+
+	printf("Logfile is now [%s]\n", n);
+	logfile = n;
 	return 0;
 }
 
@@ -463,7 +491,8 @@ int sh_cmd_help(){
 			"\n!logon\n >Turns logging ON.\n"
 			"\n!logoff\n <Turns logging OFF\n"
 			"\n!logshow\n >Shows the log file content.\n"
-			"\n!logclear\n >Clears the log file content.\n"
+			"\n!logclear\n >Clears the log file content, doesn't delete the file.\n"
+			"\n!setfile <file>\n >Set the logfile name and rename it.\n"
 			"\n!showlevel\n >Show the current logging level.\n"
 			"\n!setlevel <low|middle|high>\n >Sets the logging level to the specified value.\n"
 			"\n!setprompt <prompt>\n >Set the prompt to the specified string.\n"
@@ -518,8 +547,6 @@ int main (int argc, char* argv[]){
     	}
 
     	free(line); //needed?!?!
-
-    	//printf("-----> %s", line);
     }
 
 	return 0;
