@@ -103,7 +103,8 @@ int sh_launch_int(command c){
 		exit_code = sh_cmd_logoff();
 	}
 	else if (strcmp(c.cmd, "!logshow") == 0){
-		printf("Internal command logshow\n");
+		//printf("Internal command logshow\n");
+		exit_code = sh_cmd_logshow();
 	}
 	else if (strcmp(c.cmd, "!setlevel") == 0){
 		//printf("Internal command setlevel\n");
@@ -166,7 +167,7 @@ void log_command(command c, int exit_status){
 	FILE *fp;
 	fp = fopen(logfile, "a");
 	if (fp == NULL){
-		perror("Error opening the file. Commands won't be logged.");
+		perror("Error opening the file. Commands won't be logged");
 		return;
 	}
 
@@ -355,20 +356,6 @@ int sh_cmd_showlevel(){
 	return 0;
 }
 
-/* This function turns on the logging (log_status = 1) */
-int sh_cmd_logon(){
-	log_status = 1;
-	printf("Logging turned ON.\n");
-	return 0;
-}
-
-/* This function turns off the logging (log_status = 0) */
-int sh_cmd_logoff(){
-	log_status = 0;
-	printf("Logging turned OFF.\n");
-	return 0;
-}
-
 /* This function sets the logging level to lv and returns 0.
  * If the argument is wrong it prints a message and returns 1.
  */
@@ -396,6 +383,44 @@ int sh_cmd_setlevel(char *lv){
 	}
 	return ret;
 }
+
+/* This function turns on the logging (log_status = 1) */
+int sh_cmd_logon(){
+	log_status = 1;
+	printf("Logging turned ON.\n");
+	return 0;
+}
+
+/* This function turns off the logging (log_status = 0) */
+int sh_cmd_logoff(){
+	log_status = 0;
+	printf("Logging turned OFF.\n");
+	return 0;
+}
+
+/* This functions reads the logfile and prints the content */
+int sh_cmd_logshow(){
+	FILE *fp;
+	char *line = NULL;
+	size_t len = 0;
+	//ssize_t read;
+	/* open the logfile */
+	fp = fopen(logfile, "r");
+	if (fp == NULL){
+		perror("Error opening the file");
+		return 1;
+	}
+
+	/* Read file line by line and print it */
+	while(getline(&line, &len, fp) != -1){
+		printf("%s", line);
+	}
+
+	fclose(fp);
+	if(line)
+		free(line);
+	return 0;
+} 
 
 /* This function sets the prompr to pr */
 int sh_cmd_setprompt(char *pr){
