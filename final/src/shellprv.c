@@ -87,8 +87,48 @@ int sh_launch(command c){
 
 /* Function that executes an internal command. Returns the exit code of the command. */
 int sh_launch_int(command c){
-	printf("TODO: launch an internal commmand.\n");
-	return 1;
+	//printf("TODO: launch an internal commmand.\n");
+
+	int exit_code = 1;
+	if (strcmp(c.cmd, "!showlevel") == 0){
+		//printf("Internal command showlevel\n");
+		exit_code = sh_cmd_showlevel();
+	}
+	else if (strcmp(c.cmd, "!logon") == 0){
+		//printf("Internal command logon\n");
+		exit_code = sh_cmd_logon();
+	}
+	else if (strcmp(c.cmd, "!logoff") == 0){
+		//printf("Internal command logoff\n");
+		exit_code = sh_cmd_logoff();
+	}
+	else if (strcmp(c.cmd, "!logshow") == 0){
+		printf("Internal command logshow\n");
+	}
+	else if (strcmp(c.cmd, "!setlevel") == 0){
+		//printf("Internal command setlevel\n");
+		exit_code = sh_cmd_setlevel(c.args);
+	}
+	else if (strcmp(c.cmd, "!setprompt") == 0){
+		//printf("Internal command setprompt\n");
+		exit_code = sh_cmd_setprompt(c.args);
+	}
+	else if (strcmp(c.cmd, "!run") == 0){
+		printf("Internal command run\n");
+	}
+	else if (strcmp(c.cmd, "!quit") == 0){
+		//printf("Internal command quit\n");
+		exit_code = sh_cmd_quit();
+	}
+	else if (strcmp(c.cmd, "!help") == 0){
+		//printf("Internal command help\n");
+		exit_code = sh_cmd_help();
+	}
+	else {
+		printf("Internal command not found!\n");
+	}
+
+	return exit_code;
 }
 
 /* Function that executes an external command. Returns the exit code of the command. */
@@ -198,7 +238,6 @@ void parse_args(int argc, char *argv[]){
 			break;
 		switch(next_opt){
 			case 0:
-				//printf("Case 0!\n");
 				break;
 			case 'p':	// -p o --prompt
 				printf("Option PROMPT with argument: %s\n", optarg);
@@ -310,12 +349,14 @@ int sh_cmd_showlevel(){
 /* This function turns on the logging (log_status = 1) */
 int sh_cmd_logon(){
 	log_status = 1;
+	printf("Logging turned ON.\n");
 	return 0;
 }
 
 /* This function turns off the logging (log_status = 0) */
 int sh_cmd_logoff(){
 	log_status = 0;
+	printf("Logging turned OFF.\n");
 	return 0;
 }
 
@@ -325,14 +366,20 @@ int sh_cmd_logoff(){
 int sh_cmd_setlevel(char *lv){
 	int ret = 0;
 	// if lv is low set loglevel to 0
-	if(strcmp(lv, "low") == 0) 
+	if(strcmp(lv, "low") == 0) {
 		loglevel = 0;
+		printf("Logging level set to [low].\n");
+	}
 	// if arg is middle set loglevel to 1
-	else if(strcmp(lv, "middle") == 0)
+	else if(strcmp(lv, "middle") == 0){
 		loglevel = 1;
+		printf("Logging level set to [middle].\n");
+	}
 	// if arg is middle set loglevel to 2
-	else if(strcmp(lv, "high") == 0)
+	else if(strcmp(lv, "high") == 0){
 		loglevel = 2;
+		printf("Logging level set to [high].\n");
+	}
 	// else show how to use command
 	else{
 		ret = 1;
@@ -343,13 +390,35 @@ int sh_cmd_setlevel(char *lv){
 
 /* This function sets the prompr to pr */
 int sh_cmd_setprompt(char *pr){
-	prompt = pr; /* CHECK THIS!! */
-	return 0;
+	int ret = 0;
+	if(pr[0]=='\0'){
+		ret = 1;
+		printf("!setprompt: expected argument.\n");
+	} else {
+		prompt = pr;
+	}
+	return ret;
 }
 
 /* This function quits the shell */
 int sh_cmd_quit(){
 	exit(EXIT_SUCCESS);
+}
+
+/* This function prints information about internal commands */
+int sh_cmd_help(){
+	printf(	"Valid internal commands are:\n"
+			"\n!help\n >Show this help message.\n"
+			"\n!showlevel\n >Show the current logging level.\n"
+			"\n!logon\n >Turns logging ON.\n"
+			"\n!logoff\n <Turns logging OFF\n"
+			"\n!logshow\n >Shows the log file content.\n"
+			"\n!setlevel <low|middle|high>\n >Sets the logging level to the specified value.\n"
+			"\n!setprompt <prompt>\n >Set the prompt to the specified string.\n"
+			"\n!run <command>\n >Runs a command in a separate process.\n"
+			"\n!quit\n >Quits the shell\n"
+		);
+	return 0;
 }
 
 
