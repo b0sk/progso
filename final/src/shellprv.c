@@ -530,9 +530,26 @@ int sh_cmd_setprompt(char *pr){
  * if the fork fails returns -1
  */
 int sh_cmd_run(char *comm){
-	printf("TODO: implement !run command\n");
+	//printf("TODO: implement !run command\n");
 
-	return 1;
+	pid_t pid;
+	int status = 0;
+	pid = fork();
+	if(pid == 0){
+		/* Child proccess */
+		printf("Running command in new process.\n");
+		int exit_status = WEXITSTATUS(system(comm));
+		exit(exit_status);
+	} else if(pid < 0) {
+		/* Error forking */
+		perror("error creating child process");
+		return -1;
+	} else {
+		/* Parent process */
+		/* wait for the children and save the exit status */
+		waitpid(pid, &status, WUNTRACED);
+		return WEXITSTATUS(status);
+	}
 }
 
 /* This function quits the shell */
