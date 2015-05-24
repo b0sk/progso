@@ -23,9 +23,6 @@ int loglevel = 1;
 char *prompt = "->";
 /* The name of the lofile. Default is "shell.log" */
 char *logfile = "shell.log";
-/* Append and read file descriptors */
-FILE *logfp_a;
-FILE *logfp_r;
 /* The logging status. Default is ON (1). 1 = ON, 0 = OFF */
 int log_status = 1;
 
@@ -204,8 +201,7 @@ char *current_timestamp(){
 
 /*
  * log_command takes as input a command c and its exit status
- * and logs it in the logfile using the logfp_a file descriptor
- * and appending a line at the end.
+ * and logs it in the logfile, appending a line at the end.
  * If the loglevel is set to low it logs the timestamp, the command
  * and the exit status. If the loglevel is middle, it adds the arguments
  * and if the loglevel is high it adds the command mode ('i' or 'e').
@@ -213,48 +209,51 @@ char *current_timestamp(){
  * "[Day, Month DD YYYY - hh:mm:ss] command arguments [e|i] (exit_status)"
 */
 void log_command(command c, int exit_status){
-	/* Check if the file descriptor logfp_a is NULL and print warning message */
-	if(logfp_a == NULL){
-		printf("Warning: can't log the command.\n");
-	} else {
-		/* log the current timestamp */
-		char *timestamp = current_timestamp();
-		fprintf(logfp_a, "[%s] ", timestamp);
-
-		/* If loglevel is middle or high, log the command + arguments */
-		if (loglevel >= 1){
-			char *str = str_concat(c.cmd, c.args);
-			fprintf(logfp_a, "%s ", str);
-			free(str);
-		} else { /* else log only the command */
-			fprintf(logfp_a, "%s ", c.cmd);
-		}
-
-		/* If loglevel is high, log command mode (external or internal).
-		 * If the command is ND (a new line) print "[-]".
-		 */
-		if(loglevel == 2){
-			char cmd_mode;
-			switch(c.mode){
-				case INTERNAL:
-					cmd_mode = 'e';
-					break;
-				case EXTERNAL:
-					cmd_mode = 'i';
-					break;
-				default:
-					cmd_mode = '-';
-					break;
-			}
-			fprintf(logfp_a, "[%c] ", cmd_mode);
-		}
-
-		/* Log the exit status */
-		fprintf(logfp_a, "(%i)\n", exit_status);
-
-		fflush(logfp_a);
-		free(timestamp);
+	/* open the logfile in append mode */
+	FILE *fp;
+	fp = fopen(logfile, "a");
+	if (fp == NULL){
+		perror("Error opening the file. Commands won't be logged");
+		return;
 	}
+
+	/* log the current timestamp */
+	char *timestamp = current_timestamp();
+	fprintf(fp, "[%s] ", timestamp);
+
+	/* If loglevel is middle or high, log the command + arguments */
+	if (loglevel >= 1){
+		char *str = str_concat(c.cmd, c.args);
+		fprintf(fp, "%s ", str);
+		free(str);
+	} else { /* else log only the command */
+		fprintf(fp, "%s ", c.cmd);
+	}
+
+	/* If loglevel is high, log command mode (external or internal).
+	 * If the command is ND (a new line) print "[-]".
+	 */
+	if(loglevel == 2){
+		char cmd_mode;
+		switch(c.mode){
+			case INTERNAL:
+				cmd_mode = 'e';
+				break;
+			case EXTERNAL:
+				cmd_mode = 'i';
+				break;
+			default:
+				cmd_mode = '-';
+				break;
+		}
+		fprintf(fp, "[%c] ", cmd_mode);
+	}
+
+	/* Log the exit status */
+	fprintf(fp, "(%i)\n", exit_status);
+
+	fclose(fp);
+	free(timestamp);
 }
 
 /* ------------------------------------------------------------------------------- */
@@ -453,23 +452,26 @@ int sh_cmd_logoff(){
  * If there is an error returns 1, else returns 0.
 */
 int sh_cmd_logshow(){
-	/* Check if the file descriptor logfp_r is NULL and print warning message */
-	if (logfp_r == NULL){
-		printf("Can't read the logfile.\n");
+	FILE *fp;
+	char *line = NULL;
+	size_t len = 0;
+	//ssize_t read;
+	/* open the logfile */
+	fp = fopen(logfile, "r");
+	if (fp == NULL){
+		perror("Error opening the file");
 		return 1;
-	} else {
-		char *line = NULL;
-		size_t len = 0;
-
-		/* Read file line by line and print it */
-		while(getline(&line, &len, logfp_r) != -1){
-			printf("%s", line);
-		}
-
-		if(line)
-			free(line);
-		return 0;
 	}
+
+	/* Read file line by line and print it */
+	while(getline(&line, &len, fp) != -1){
+		printf("%s", line);
+	}
+
+	fclose(fp);
+	if(line)
+		free(line);
+	return 0;
 }
 
 /*
@@ -477,6 +479,12 @@ int sh_cmd_logshow(){
  * If there is an error returns 1, else returns 0.
 */
 int sh_cmd_logclear(){
+	FILE *fp;
+	fp = fopen(logfile, "a");
+	if (fp == NULL){
+		perror("Error opening the file.");
+		return 1;
+	}
 	/* Clear the file content */
 	fclose(fopen(logfile, "w"));
 	return 0;
@@ -551,7 +559,6 @@ int sh_cmd_run(char *comm){
 
 /* This function quits the shell */
 int sh_cmd_quit(){
-	sh_close_logfile();
 	exit(EXIT_SUCCESS);
 }
 
@@ -582,35 +589,6 @@ static void remove_leading_spaces(char** line)
    *line += i;
 }
 
-/*
- * sh_open_logfile opens logfp_a and logfp_r using the file name
- * stored in "logfile". Returns 0 on succes 0, 1 on error
- */
-int sh_open_logfile(){
-	int retval = 0;
-	logfp_a = fopen(logfile, "a");
-	logfp_r = fopen(logfile, "r");
-	if (logfp_r == NULL){
-		perror("Error opening the logfile in reading mode");
-		retval = 1;
-	}
-	if (logfp_a == NULL){
-		perror("Error opening the logfile. Commands won't be logged");
-		retval = 1;
-	}
-	return retval;
-}
-
-void sh_close_logfile(){
-	if(logfp_a != NULL){
-		printf("CLOSING APPEND\n");
-		fclose(logfp_a);
-	}
-	if (logfp_r != NULL)	{
-		printf("CLOSING READ\n");
-		fclose(logfp_r);
-	}
-}
 
 
 int main (int argc, char* argv[]){
@@ -620,17 +598,9 @@ int main (int argc, char* argv[]){
 	/* Parse command line arguments */
 	parse_args(argc, argv);
 
-	/* Open the logfile in reading and append mode, 
-	 * if there is an error in opening the file turns logging off 
-	 */
-	if(sh_open_logfile() != 0){
-		log_status = 0;
-	}
-
     /* Main shell loop */
     while(!feof(stdin)) {
-    	/* Contains the line from input */
-    	char *line;
+    	char *line;		// Contains the line from input
     	int exit_status; 
 
     	/* Print eh shell prompt */
