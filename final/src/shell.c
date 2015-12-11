@@ -1,106 +1,26 @@
 #include <getopt.h>
-#include <stdio.h>	//for printf ...
-#include <stdlib.h>	//for exit ...
-#include <string.h>	//for strtok, strcmp ...
+#include <stdio.h>		// for printf, rename ...
+#include <stdlib.h>		// for exit ...
+#include <string.h>		// for strtok, strcmp ...
+#include <sys/wait.h>	// for wait, waitpid, WEXITSTATUS ...
+#include <unistd.h>		// for chdir, (fork, exec) ...
+
+#include "utils.h"
+#include "sh.h"
+
 
 // The name of this program.
 const char* program_name;
 
-/*
- * Prints usage information about this program and exits with exit_code 
- */
-void print_usage(int exit_code){
-	printf("Usage: %s <option> <argument>\n", program_name);
-	printf(
-			"  -p, --prompt <prompt>		Set the prompt of the shell\n"
-			"  -l, --loglevel <level>	Set the loglevel [low, middle, high]\n"
-			"  -f, --logfile <filename>	Set the logfile name\n"
-	);
-	exit(exit_code);
-}
 
 /*
- * Prints the prompt of the shell
+ * Parse the command line arguments given by the user
+ * and save the result in the global variables.
  */
-void sh_print_prompt(char *prompt){
-	printf("%s ", prompt);
-}
-
-/*
- * Reads a line from input
- */
-char *sh_read_line(void){
-	char *line = NULL;
-	ssize_t buffsize = 0; // getline allocates a buffer
-	getline(&line, &buffsize, stdin);
-	return line;
-}
-
-#define SH_TOK_BUFSIZE 64
-#define SH_TOK_DELIM " \t\r\n\a"
-char **sh_split_line(char *line)
-{
-  int bufsize = SH_TOK_BUFSIZE, position = 0;
-  char **tokens = malloc(bufsize * sizeof(char*));
-  char *token;
-
-  if (!tokens) {
-    fprintf(stderr, "lsh: allocation error\n");
-    exit(EXIT_FAILURE);
-  }
-
-  token = strtok(line, SH_TOK_DELIM);
-  while (token != NULL) {
-    tokens[position] = token;
-    position++;
-
-    if (position >= bufsize) {
-      bufsize += SH_TOK_BUFSIZE;
-      tokens = realloc(tokens, bufsize * sizeof(char*));
-      if (!tokens) {
-        fprintf(stderr, "lsh: allocation error\n");
-        exit(EXIT_FAILURE);
-      }
-    }
-
-    token = strtok(NULL, SH_TOK_DELIM);
-  }
-  tokens[position] = NULL;
-  return tokens;
-}
-
-/* Function that executes an internal command. Returns the exit code of the command. */
-int sh_launch_int(char **args){
-	printf("TODO: launch an external commmand.\n");
-	return 1;
-}
-
-/* Function that executes an external command. Returns the exit code of the command. */
-int sh_launch_ext(char **args){
-	return execvp(args[0], args);
-	//return system(args);
-}
-
-int main (int argc, char* argv[]){
-	/* Set the program name from argv[0]; */
-	program_name = argv[0];
-
-	/* 
-	 * An int describing log level:
-	 * 0 = LOW, 1 = MIDDLE, 2 = HIGH
-	 * The default is MIDDLE (1)
-	 */
-	int loglevel = 1;
-
-	/* The prompt of the shell. Default is "->" */
-	char *prompt = "->";
-
-	/* The name of the lofile. Default is "shell.log" */
-	char *logfile = "shell.log";
-
+void parse_args(int argc, char *argv[]){
 	// A string listing valid short options
 	const char* const short_options = "p:l:f:";
-	// An array describing valid long options
+	// An array describing the valid long options
 	const struct option long_options[] = {
 		{ "prompt",		required_argument, NULL, 'p' },
 		{ "loglevel",	required_argument, NULL, 'l' },
@@ -117,16 +37,12 @@ int main (int argc, char* argv[]){
 			break;
 		switch(next_opt){
 			case 0:
-				//printf("Case 0!\n");
 				break;
 			case 'p':	// -p o --prompt
-				printf("Option PROMPT with argument: %s\n", optarg);
 				/* Set the prompt from argument */ 
 				prompt = optarg;
 				break;
-			case 'l':	// -l o --loglevel
-				printf("Option LOGLEVEL with argument: %s\n", optarg);
-				
+			case 'l':	// -l o --loglevel				
 				// if arg is low set loglevel to 0
 				if(strcmp(optarg, "low") == 0) 
 					loglevel = 0;
@@ -139,20 +55,19 @@ int main (int argc, char* argv[]){
 				// else print usage and exit with error
 				else{
 					printf("Invalid argument for option --loglevel\n");
-					print_usage(-1);
+					sh_print_usage(EXIT_FAILURE);
 				}
 				break;
 			case 'f':	// -f o --logfile
-				printf("Option LOGFILE with argument: %s\n", optarg);
 				logfile = optarg;
 				break;
 			case '?':	// Opzione non valida.
 				/* getopt_long prints an error message */
-				print_usage(-1); // Print usage and exit with error
+				sh_print_usage(EXIT_FAILURE); // Print usage and exit with error
 				break;
 			default:	// Opzione non riconosciuta.
 				printf("Invalid option.\n");
-				print_usage(-1); // Print usage and exit with error
+				sh_print_usage(EXIT_FAILURE); // Print usage and exit with error
 		}
 	}
 	
@@ -163,34 +78,72 @@ int main (int argc, char* argv[]){
 			printf ("%s ", argv[optind++]);
 		putchar ('\n');
 		
-		print_usage(-1); // Print usage and return error
+		sh_print_usage(-1); // Print usage and return error
     }
 
-    /*
-     * Main shell loop
-    */
+}
+
+
+int main (int argc, char* argv[]){
+	/* Set the program name from argv[0]; */
+	program_name = argv[0];
+
+	/* Set default log lgevel to MIDLLE (1) */
+	loglevel = 1;
+	/* Set default prompt to "->" */
+	prompt = "->";
+	/* Set default lodfile name to "shell.log" */
+	logfile = "shell.log";
+	/* Set the default logging status to ON (1) */
+	log_status = 1;
+
+	/* Parse command line arguments */
+	parse_args(argc, argv);
+
+	/* Open the logfile in reading and append mode, 
+	 * if there is an error in opening the file turns logging off 
+	 */
+	if(sh_open_logfile() != 0){
+		log_status = 0;
+	}
+
+	/* Prints welcome message and status */
+	printf("Interactive shell started.\n");
+	printf("Prompt set to [%s]\n", prompt);
+	sh_cmd_showfile();
+	sh_cmd_showlevel();
+
+    /* Main shell loop */
     while(!feof(stdin)) {
-    	char *line;		/* Contains the line from input */
-    	char **args;	/* Contains the splitted args */
-    	char cmd_mode; /* 'e' external command, 'i' internal command */
+    	/* Contains the line from input */
+    	char *line;
     	int exit_status; 
 
+    	/* Print eh shell prompt */
     	sh_print_prompt(prompt);
-    	line = sh_read_line();
-    	args = sh_split_line(line);
     	
-    	if (args[0][0] == '!'){
-    		printf("Internal command!\n");
-    		cmd_mode = 'i';
-    		exit_status = sh_launch_int(args);
-    	}else{
-    		printf("External command\n");
-    		cmd_mode = 'e';
-    		exit_status = sh_launch_ext(args);
+    	/* Read a line from input */
+    	line = sh_read_line();
+
+		/* Remove initial empty chars */
+		char *ln = line;
+    	remove_leading_spaces(&ln);
+
+    	/* Parse the command */
+    	command c = sh_parse_command(ln);
+
+    	/* Launch the command and save the exit status */    	
+    	exit_status = sh_launch(c);
+
+    	/* If logging is active log the command */
+    	if(log_status == 1){
+    		sh_log_command(c, exit_status);
     	}
 
-    	//printf("-----> %s", line);
+    	free(line);
     }
+
+    sh_close_logfile();
 
 	return 0;
 }
