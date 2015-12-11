@@ -2,6 +2,10 @@
 
 This simple shell was implemented as the final poject for the *Operating Systems* course.
 
+### Building
+
+Use **make bin** to generate the executable in the *bin* directory.
+
 ### Usage
 
 ```
