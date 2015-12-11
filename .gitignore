@@ -1,0 +1,13 @@
+# Object files
+*.o
+
+# Executables
+*.out
+
+# Log files
+*.log
+
+# Folders
+bin/
+assets/
+obj/
